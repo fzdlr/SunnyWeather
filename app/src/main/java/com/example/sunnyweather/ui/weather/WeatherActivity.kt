@@ -1,18 +1,28 @@
 package com.example.sunnyweather.ui.weather
 
+import android.annotation.SuppressLint
+import android.content.Context
+import android.inputmethodservice.InputMethodService
+import android.os.Build
 import androidx.appcompat.app.AppCompatActivity
 import android.os.Bundle
-import android.view.LayoutInflater
-import android.view.TextureView
-import android.view.View
+import android.view.*
+import android.view.inputmethod.InputMethodManager
+import android.widget.Button
 import android.widget.ImageView
 import android.widget.LinearLayout
 import android.widget.RelativeLayout
 import android.widget.ScrollView
 import android.widget.TextView
 import android.widget.Toast
+import androidx.annotation.RequiresApi
+import androidx.core.view.GravityCompat
+import androidx.core.view.ViewCompat
+import androidx.core.view.WindowInsetsCompat
+import androidx.drawerlayout.widget.DrawerLayout
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout
 import com.example.sunnyweather.R
 import com.example.sunnyweather.databinding.*
 import com.example.sunnyweather.logic.model.Weather
@@ -23,16 +33,22 @@ import java.text.SimpleDateFormat
 import java.util.*
 class WeatherActivity : AppCompatActivity() {
 
-    private val viewModel by lazy { ViewModelProvider(this)[WeatherViewModel::class.java] }
+    val viewModel by lazy { ViewModelProvider(this)[WeatherViewModel::class.java] }
     private val forecastLayout: LinearLayout by lazy { findViewById(R.id.forecastLayout) }
     private val ultravioletText : TextView by lazy { findViewById(R.id.ultravioletText) }
     private val carWashingText : TextView by lazy { findViewById(R.id.carWashingText) }
     private val coldRiskText : TextView by lazy { findViewById(R.id.coldRiskText) }
     private val dressingText : TextView by lazy { findViewById(R.id.dressingText) }
     private val weatherLayout : ScrollView by lazy { findViewById(R.id.weatherLayout) }
+    private val swipeRefreshLayout : SwipeRefreshLayout by lazy { findViewById(R.id.swipeRefresh) }
+    private val button : Button by lazy { findViewById(R.id.navBtn) }
+    val drawerLayout : DrawerLayout by lazy { findViewById(R.id.drawerLayout) }
+    @RequiresApi(Build.VERSION_CODES.R)
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         setContentView(R.layout.activity_weather)
+        val controller = window.decorView.windowInsetsController
+        controller?.hide(WindowInsets.Type.statusBars())
         if(viewModel.LocationLng.isEmpty())
         {
             viewModel.LocationLng = intent.getStringExtra("location_lng")?:""
@@ -53,10 +69,43 @@ class WeatherActivity : AppCompatActivity() {
                 Toast.makeText(this, "获取天气信息失败", Toast.LENGTH_SHORT).show()
                 result.exceptionOrNull()?.printStackTrace()
             }
+            swipeRefreshLayout.isRefreshing = false
         }
-        viewModel.refreshWeather(viewModel.LocationLng,viewModel.LocationLat)
+        swipeRefreshLayout.setColorSchemeResources(R.color.purple_500)
+        refreshWeather()
+        swipeRefreshLayout.setOnRefreshListener {
+            refreshWeather()
+        }
+        button.setOnClickListener {
+            drawerLayout.openDrawer(GravityCompat.START)
+        }
+        drawerLayout.addDrawerListener(object : DrawerLayout.DrawerListener
+        {
+            override fun onDrawerSlide(drawerView: View, slideOffset: Float) {
+
+            }
+
+            override fun onDrawerOpened(drawerView: View) {
+
+            }
+
+            override fun onDrawerClosed(drawerView: View) {
+                val manager = getSystemService(Context.INPUT_METHOD_SERVICE) as InputMethodManager
+                manager.hideSoftInputFromWindow(drawerView.windowToken,InputMethodManager.HIDE_NOT_ALWAYS)
+            }
+
+            override fun onDrawerStateChanged(newState: Int) {
+
+            }
+
+        })
     }
 
+  fun refreshWeather()
+    {
+        viewModel.refreshWeather(viewModel.LocationLng,viewModel.LocationLat)
+        swipeRefreshLayout.isRefreshing = true
+    }
     private fun showWeatherInfo(weather: Weather)
     {
         //now.xml

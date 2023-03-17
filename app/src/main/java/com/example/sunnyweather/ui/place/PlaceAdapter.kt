@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.example.sunnyweather.R
 import com.example.sunnyweather.logic.model.Place
 import com.example.sunnyweather.ui.weather.WeatherActivity
-class PlaceAdapter(private val fragment : Fragment,private val placeList : List<Place>) : RecyclerView.Adapter<PlaceAdapter.ViewHolder>() {
+class PlaceAdapter(private val fragment : PlaceFragment,private val placeList : List<Place>) : RecyclerView.Adapter<PlaceAdapter.ViewHolder>() {
 
     inner class ViewHolder(view : View) : RecyclerView.ViewHolder(view)
     {
@@ -21,12 +21,20 @@ class PlaceAdapter(private val fragment : Fragment,private val placeList : List<
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
-        Log.d("123","789")
         val view = LayoutInflater.from(parent.context).inflate(R.layout.place_item,parent,false)
         val holder = ViewHolder(view)
         holder.itemView.setOnClickListener {
             val position = holder.bindingAdapterPosition
             val place = placeList[position]
+            val activity = fragment.activity
+            if(activity is WeatherActivity){
+                activity.drawerLayout.closeDrawers()
+                activity.viewModel.LocationLng = place.location.lng
+                activity.viewModel.LocationLat = place.location.lat
+                activity.viewModel.placeName = place.name
+                activity.refreshWeather()
+            }
+            else{
             val intent = Intent(parent.context,WeatherActivity::class.java).apply {
                 putExtra("location_lng",place.location.lng)
                 putExtra("location_lat",place.location.lat)
@@ -34,11 +42,12 @@ class PlaceAdapter(private val fragment : Fragment,private val placeList : List<
             }
             fragment.startActivity(intent)
             fragment.activity?.finish()
+            }
+            fragment.viewModel.savePlace(place)
         }
         return holder
     }
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        Log.d("123","456")
         val place = placeList[position]
         holder.placeName.text = place.name
         holder.placeAddress.text = place.address
